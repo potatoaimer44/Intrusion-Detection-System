@@ -1,0 +1,16 @@
+# DNS Traffic
+alert udp any any -> any 53 (msg:"DNS Query Detected"; content:"|"; sid:1000001;)
+alert udp any 53 -> any any (msg:"DNS Response Detected"; content:"|"; sid:1000002;)
+
+# TCP Traffic from/to Specific Subnet
+alert tcp 192.168.1.0/24 any -> any any (msg:"TCP Traffic from Local Subnet"; sid:1000003;)
+alert tcp any any -> 192.168.1.0/24 any (msg:"TCP Traffic to Local Subnet"; sid:1000004;)
+
+# HTTP Traffic
+alert tcp any any -> any 8080 (msg:"HTTP Traffic on Alternate Port 8080"; sid:1000005;)
+alert tcp any 80 -> any any (msg:"HTTP Response Traffic on Port 80"; sid:1000006;)
+alert tcp any any -> any 80 (msg:"HTTP Request Traffic on Port 80"; sid:1000007;)
+
+# Port Scanning
+alert tcp any any -> any 1:1024 (msg:"Port Scan Detected"; threshold:type both, track by_src, count 10, seconds 60; sid:1000008;)
+alert tcp any any -> any 22 (msg:"SSH Traffic Detected";)
