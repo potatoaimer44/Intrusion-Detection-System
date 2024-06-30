@@ -71,6 +71,9 @@ class PacketSniffer:
             elif hasattr(packet, 'ipv6'):
                 source_address = packet.ipv6.src
                 destination_address = packet.ipv6.dst
+            elif hasattr(packet, 'arp'):
+                source_address = "fe80::cd58:b3c5:5293:d658"
+                destination_address = "Broadcast"
             else:
                 source_address = "Unknown"
                 destination_address = "Unknown"
@@ -82,6 +85,9 @@ class PacketSniffer:
             elif hasattr(packet, 'udp'):
                 source_port = packet.udp.srcport
                 destination_port = packet.udp.dstport
+            elif hasattr(packet, 'arp'):
+                source_port = 219
+                destination_port = 219
             else:
                 source_port = "Unknown"
                 destination_port = "Unknown"

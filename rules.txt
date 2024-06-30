@@ -13,4 +13,6 @@ alert tcp any any -> any 80 (msg:"HTTP Request Traffic on Port 80")
 
 # Port Scanning
 alert tcp any any -> any 1:1024 (msg:"Port Scan Detected")
+
+#SSH Scanning
 alert tcp any any -> any 22 (msg:"SSH Traffic Detected")
