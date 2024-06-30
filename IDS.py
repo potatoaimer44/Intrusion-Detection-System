@@ -28,7 +28,7 @@ class PacketSniffer:
         self.rules = read_rules()
 
     def start_sniffing(self, tree, alert_listbox):
-        interface = 'Wi-Fi' #netifaces.gateways()['default'][netifaces.AF_INET][1]  # Change this to dynamic interface detection
+        interface = netifaces.gateways()['default'][netifaces.AF_INET][1]  # Change this to dynamic interface detection
         if interface:
             self.capture = pyshark.LiveCapture(interface=interface)
             self.is_sniffing = True

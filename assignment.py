@@ -15,8 +15,6 @@ def read_rules():
                     rules_list.append(line.strip())
     except FileNotFoundError:
         print("File not found:", rule_file)
-    except Exception as e:
-        print("An error occurred:", e)
     return rules_list
 
 class PacketSniffer:
@@ -44,18 +42,22 @@ class PacketSniffer:
             self.sniffing_thread.join()
 
     def update_packets(self, tree, alert_tree):
-        for packet in self.capture.sniff_continuously():
-            if not self.is_sniffing:
-                break
-            packet_details, alert_message = self.get_packet_details(packet)
-            tree.insert("", "end", values=packet_details)
-            tree.see(tree.get_children()[-1])
+        try:
+            for packet in self.capture.sniff_continuously():
+                if not self.is_sniffing:
+                    break
+                packet_details, alert_message = self.get_packet_details(packet)
+                if packet_details:
+                    tree.insert("", "end", values=packet_details)
+                    tree.see(tree.get_children()[-1])
 
-            if alert_message:
-                self.alert_messages.append(alert_message)
-                alert_details = alert_message.split(' - ')
-                alert_tree.insert("", "end", values=alert_details)
-                alert_tree.see(alert_tree.get_children()[-1])
+                if alert_message:
+                    self.alert_messages.append(alert_message)
+                    alert_details = alert_message.split(' - ')
+                    alert_tree.insert("", "end", values=alert_details)
+                    alert_tree.see(alert_tree.get_children()[-1])
+        except Exception as e:
+            print("An error occurred during packet sniffing:", e)
 
     def get_packet_details(self, packet):
         try:
@@ -79,7 +81,7 @@ class PacketSniffer:
             return packet_details, alert_message
         except AttributeError as e:
             print("AttributeError:", e)
-            return ("Unknown", "Unknown", "Unknown", "Unknown", "Unknown", "Unknown"), None
+            return None, None
 
     def check_for_alert(self, src_ip, dest_ip, protocol, src_port, dest_port):
         if protocol is None:
