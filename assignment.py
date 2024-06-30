@@ -61,11 +61,32 @@ class PacketSniffer:
 
     def get_packet_details(self, packet):
         try:
-            protocol = packet.transport_layer or "Unknown"
-            source_address = packet.ip.src if hasattr(packet, 'ip') else "Unknown"
-            source_port = packet[packet.transport_layer].srcport if packet.transport_layer and hasattr(packet, packet.transport_layer) else "Unknown"
-            destination_address = packet.ip.dst if hasattr(packet, 'ip') else "Unknown"
-            destination_port = packet[packet.transport_layer].dstport if packet.transport_layer and hasattr(packet, packet.transport_layer) else "Unknown"
+            # Get protocol information
+            protocol = packet.highest_layer if hasattr(packet, 'highest_layer') else "Unknown"
+
+            # Get IP addresses (handle both IPv4 and IPv6)
+            if hasattr(packet, 'ip'):
+                source_address = packet.ip.src
+                destination_address = packet.ip.dst
+            elif hasattr(packet, 'ipv6'):
+                source_address = packet.ipv6.src
+                destination_address = packet.ipv6.dst
+            else:
+                source_address = "Unknown"
+                destination_address = "Unknown"
+
+            # Get transport layer ports
+            if hasattr(packet, 'tcp'):
+                source_port = packet.tcp.srcport
+                destination_port = packet.tcp.dstport
+            elif hasattr(packet, 'udp'):
+                source_port = packet.udp.srcport
+                destination_port = packet.udp.dstport
+            else:
+                source_port = "Unknown"
+                destination_port = "Unknown"
+
+            # Get packet timestamp
             packet_time = packet.sniff_time
 
             packet_details = (
@@ -81,7 +102,8 @@ class PacketSniffer:
             return packet_details, alert_message
         except AttributeError as e:
             print("AttributeError:", e)
-            return None, None
+            return ("Unknown", "Unknown", "Unknown", "Unknown", "Unknown", "Unknown"), None
+
 
     def check_for_alert(self, src_ip, dest_ip, protocol, src_port, dest_port):
         if protocol is None:
