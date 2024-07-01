@@ -16,3 +16,18 @@ alert tcp any any -> any 1:1024 (msg:"Port Scan Detected")
 
 #SSH Scanning
 alert tcp any any -> any 22 (msg:"SSH Traffic Detected")
+
+# Suspicious ICMP Traffic
+alert icmp any any -> any any (itype:8; msg:"ICMP Echo Request Detected")
+alert icmp any any -> any any (itype:0; msg:"ICMP Echo Reply Detected")
+alert icmp any any -> any any (itype:3; msg:"ICMP Destination Unreachable Detected")
+alert icmp any any -> any any (itype:11; msg:"ICMP Time Exceeded Detected")
+
+# Malicious IP Detection
+alert ip [malicious_ip1,malicious_ip2] any -> any any (msg:"Traffic from Known Malicious IP Detected")
+alert ip any any -> [malicious_ip1,malicious_ip2] any (msg:"Traffic to Known Malicious IP Detected")
+
+# ICMPv6 Ping Detection
+alert icmpv6 any any -> any any (msg:"Ping Traffic Detected")
+alert icmpv6 any any -> any any (itype:128; msg:"ICMPv6 Echo Request Detected")
+alert icmpv6 any any -> any any (itype:129; msg:"ICMPv6 Echo Reply Detected")
