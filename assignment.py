@@ -4,6 +4,10 @@ import threading
 import pyshark
 import ipaddress
 import netifaces
+import smtplib
+from email.mime.text import MIMEText
+from datetime import datetime
+import logging
 
 def read_rules():
     rule_file = "rules.txt"
@@ -24,7 +28,7 @@ class PacketSniffer:
         self.sniffing_thread = None
         self.alert_messages = []
         self.rules = read_rules()
-        print(f"Loaded rules: {self.rules}")  # Debug: Print loaded rules
+        logging.basicConfig(filename='ids.log', level=logging.INFO, format='%(asctime)s %(message)s')
 
     def start_sniffing(self, interface, tree, alert_tree):
         if interface:
@@ -49,7 +53,6 @@ class PacketSniffer:
                     break
                 packet_details, alert_message = self.get_packet_details(packet)
                 if packet_details:
-                    print(f"Captured packet: {packet_details}")  # Debug: Print packet details
                     tree.insert("", "end", values=packet_details)
                     tree.see(tree.get_children()[-1])
 
@@ -58,51 +61,40 @@ class PacketSniffer:
                     alert_details = alert_message.split(' - ')
                     alert_tree.insert("", "end", values=alert_details)
                     alert_tree.see(alert_tree.get_children()[-1])
+                    logging.info(alert_message)
+                    self.send_alert(alert_message)
         except Exception as e:
             print("An error occurred during packet sniffing:", e)
 
     def get_packet_details(self, packet):
         try:
             # Get protocol information
-            protocol = packet.highest_layer if hasattr(packet, 'highest_layer') else "Unknown Protocol"
+            protocol = packet.highest_layer if hasattr(packet, 'highest_layer') else "Unknown"
 
             # Get IP addresses (handle both IPv4 and IPv6)
-            source_address = "Unknown Source Address"
-            destination_address = "Unknown Destination Address"
             if hasattr(packet, 'ip'):
                 source_address = packet.ip.src
                 destination_address = packet.ip.dst
             elif hasattr(packet, 'ipv6'):
                 source_address = packet.ipv6.src
                 destination_address = packet.ipv6.dst
-            elif hasattr(packet, 'arp'):
-                source_address = "ARP Source"
-                destination_address = "ARP Destination"
+            else:
+                source_address = "Unknown"
+                destination_address = "Unknown"
 
             # Get transport layer ports
-            source_port = "Unknown Source Port"
-            destination_port = "Unknown Destination Port"
             if hasattr(packet, 'tcp'):
                 source_port = packet.tcp.srcport
                 destination_port = packet.tcp.dstport
             elif hasattr(packet, 'udp'):
                 source_port = packet.udp.srcport
                 destination_port = packet.udp.dstport
-            elif hasattr(packet, 'arp'):
-                source_port = "ARP"
-                destination_port = "ARP"
-            elif hasattr(packet, 'icmp'):
-                source_port = "ICMP"
-                destination_port = "ICMP"
-            elif hasattr(packet, 'icmpv6'):
-                source_port = "ICMPv6"
-                destination_port = "ICMPv6"
+            else:
+                source_port = "Unknown"
+                destination_port = "Unknown"
 
             # Get packet timestamp
-            packet_time = packet.sniff_time if hasattr(packet, 'sniff_time') else "Unknown Time"
-
-            # Get packet length
-            packet_length = packet.length if hasattr(packet, 'length') else "Unknown Length"
+            packet_time = packet.sniff_time
 
             packet_details = (
                 str(packet_time),
@@ -110,23 +102,14 @@ class PacketSniffer:
                 source_address,
                 source_port,
                 destination_address,
-                destination_port,
-                str(packet_length)
+                destination_port
             )
 
             alert_message = self.check_for_alert(source_address, destination_address, protocol, source_port, destination_port)
             return packet_details, alert_message
         except AttributeError as e:
             print("AttributeError:", e)
-            return (
-                "Unknown Time",
-                "Unknown Protocol",
-                "Unknown Source Address",
-                "Unknown Source Port",
-                "Unknown Destination Address",
-                "Unknown Destination Port",
-                "Unknown Length"
-            ), None
+            return ("Unknown", "Unknown", "Unknown", "Unknown", "Unknown", "Unknown"), None
 
     def check_for_alert(self, src_ip, dest_ip, protocol, src_port, dest_port):
         if protocol is None:
@@ -142,7 +125,6 @@ class PacketSniffer:
                    (rule_src_port == str(src_port) or rule_src_port == "any") and \
                    (self.ip_matches(rule_dest_ip, dest_ip)) and \
                    (rule_dest_port == str(dest_port) or rule_dest_port == "any"):
-                    print(f"Alert triggered: {message}")  # Debug: Print alert message
                     return f"{message} - {src_ip}:{src_port} - {protocol} - {dest_ip}:{dest_port}"
 
         return None
@@ -155,6 +137,27 @@ class PacketSniffer:
         if '/' in rule_ip:  # handle IP range
             return ipaddress.ip_address(packet_ip) in ipaddress.ip_network(rule_ip)
         return rule_ip == packet_ip
+
+    def send_alert(self, alert_message):
+        try:
+            # Configure email parameters
+            smtp_server = 'smtp.gmail.com'
+            smtp_port = 587
+            sender_email = 'www.potatoaimer444@gmail.com'
+            receiver_email = 'www.aayushaayun@gmail.com'
+            password = 'bfwb zabs haxk dldc'
+
+            msg = MIMEText(alert_message)
+            msg['Subject'] = 'IDS Alert'
+            msg['From'] = sender_email
+            msg['To'] = receiver_email
+
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.starttls()
+                server.login(sender_email, password)
+                server.sendmail(sender_email, receiver_email, msg.as_string())
+        except Exception as e:
+            print("Failed to send alert email:", e)
 
 def get_interfaces():
     interfaces = netifaces.interfaces()
@@ -182,7 +185,7 @@ frame_bottom = tk.Frame(root)
 frame_bottom.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True, padx=10, pady=5)
 
 # Create a Treeview widget for displaying packet information in table format
-columns = ("Timestamp", "Protocol", "Source Address", "Source Port", "Destination Address", "Destination Port", "Length")
+columns = ("Timestamp", "Protocol", "Source Address", "Source Port", "Destination Address", "Destination Port")
 tree = ttk.Treeview(frame_top, columns=columns, show='headings')
 
 for col in columns:
@@ -211,22 +214,22 @@ alert_tree_scrollbar = ttk.Scrollbar(frame_bottom, orient=tk.VERTICAL, command=a
 alert_tree.configure(yscroll=alert_tree_scrollbar.set)
 alert_tree_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-# Create interface selection and control buttons
-interface_var = tk.StringVar()
-interfaces = get_interfaces()
-interface_var.set(interfaces[0] if interfaces else "")
-
+# Dropdown for network interfaces
 interface_label = tk.Label(root, text="Select Interface:")
-interface_label.pack(side=tk.LEFT, padx=5, pady=5)
+interface_label.pack(side=tk.LEFT, padx=5)
 
-interface_menu = tk.OptionMenu(root, interface_var, *interfaces)
-interface_menu.pack(side=tk.LEFT, padx=5, pady=5)
+interfaces = get_interfaces()
+interface_var = tk.StringVar(value=interfaces[0] if interfaces else '')
+interface_menu = ttk.Combobox(root, textvariable=interface_var, values=interfaces)
+interface_menu.pack(side=tk.LEFT, padx=5)
 
+# Create a Start button to start sniffing
 start_button = tk.Button(root, text="Start Sniffing", command=lambda: packet_sniffer.start_sniffing(interface_var.get(), tree, alert_tree))
-start_button.pack(side=tk.LEFT, padx=5, pady=5)
+start_button.pack(side=tk.LEFT, padx=10, pady=10)
 
+# Create a Stop button to stop sniffing
 stop_button = tk.Button(root, text="Stop Sniffing", command=packet_sniffer.stop_sniffing)
-stop_button.pack(side=tk.LEFT, padx=5, pady=5)
+stop_button.pack(side=tk.RIGHT, padx=10, pady=10)
 
 # Start the Tkinter event loop
 root.mainloop()
