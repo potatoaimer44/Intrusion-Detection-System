@@ -3,9 +3,9 @@ alert udp any any -> any 53 (msg:"DNS Query Detected")
 alert udp any 53 -> any any (msg:"DNS Response Detected")
 
 # HTTP Traffic
-alert tcp any any -> any 8080 (msg:"HTTP Traffic on Alternate Port 8080")
-alert tcp any 80 -> any any (msg:"HTTP Response Traffic on Port 80")
-alert tcp any any -> any 80 (msg:"HTTP Request Traffic on Port 80")
+alert tcp any any -> any 8000 (msg:"HTTP Traffic on Alternate Port 8000")
+#alert tcp any 80 -> any any (msg:"HTTP Response Traffic on Port 80")
+#alert tcp any any -> any 80 (msg:"HTTP Request Traffic on Port 80")
 
 # Port Scanning
 alert tcp any any -> any 1:1024 (msg:"Port Scan Detected")
@@ -55,11 +55,4 @@ alert icmp any any -> any any (itype:11; msg:"ICMP Time Exceeded Detected")
 alert udp any any -> any 67 (msg:"DHCP Request Detected")
 alert udp any 67 -> any any (msg:"DHCP Response Detected")
 
-# DNS Amplification Attack
-alert udp any any -> any 53 (msg:"Potential DNS Amplification Attack"; content:"|00 01 00 01|";)
 
-# SYN Flood Detection
-alert tcp any any -> any any (flags:S; msg:"Potential SYN Flood Attack Detected")
-
-# Suspicious User-Agent Strings
-alert tcp any any

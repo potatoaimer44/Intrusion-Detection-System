@@ -59,7 +59,7 @@ class PacketSniffer:
                 if alert_message:
                     self.alert_messages.append(alert_message)
                     alert_details = alert_message.split(' - ')
-                    alert_tree.insert("", "end", values=alert_details)
+                    alert_tree.insert("", "end", values=alert_details, tags=('alert',))
                     alert_tree.see(alert_tree.get_children()[-1])
                     logging.info(alert_message)
                     self.send_alert(alert_message)
@@ -213,6 +213,9 @@ alert_tree.pack(side=tk.LEFT, expand=True, fill=tk.BOTH)
 alert_tree_scrollbar = ttk.Scrollbar(frame_bottom, orient=tk.VERTICAL, command=alert_tree.yview)
 alert_tree.configure(yscroll=alert_tree_scrollbar.set)
 alert_tree_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+# Configure tags for the alert_tree
+alert_tree.tag_configure('alert', background='red', foreground='white')
 
 # Dropdown for network interfaces
 interface_label = tk.Label(root, text="Select Interface:")
