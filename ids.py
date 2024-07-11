@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 import threading
-import pyshark
+from scapy.all import sniff, IP, TCP, UDP
 import ipaddress
 import netifaces
 import smtplib
@@ -23,7 +23,6 @@ def read_rules():
 
 class PacketSniffer:
     def __init__(self):
-        self.capture = None
         self.is_sniffing = False
         self.sniffing_thread = None
         self.alert_messages = []
@@ -32,69 +31,55 @@ class PacketSniffer:
 
     def start_sniffing(self, interface, tree, alert_tree):
         if interface:
-            self.capture = pyshark.LiveCapture(interface=interface)
             self.is_sniffing = True
-            self.sniffing_thread = threading.Thread(target=self.update_packets, args=(tree, alert_tree))
+            self.sniffing_thread = threading.Thread(target=self.update_packets, args=(interface, tree, alert_tree))
             self.sniffing_thread.start()
         else:
             print("No interface selected. Please specify manually.")
 
     def stop_sniffing(self):
         self.is_sniffing = False
-        if self.capture:
-            self.capture.close()
         if self.sniffing_thread and self.sniffing_thread.is_alive():
             self.sniffing_thread.join()
 
-    def update_packets(self, tree, alert_tree):
+    def update_packets(self, interface, tree, alert_tree):
         try:
-            for packet in self.capture.sniff_continuously():
-                if not self.is_sniffing:
-                    break
-                packet_details, alert_message = self.get_packet_details(packet)
-                if packet_details:
-                    tree.insert("", "end", values=packet_details)
-                    tree.see(tree.get_children()[-1])
-
-                if alert_message:
-                    self.alert_messages.append(alert_message)
-                    alert_details = alert_message.split(' - ')
-                    alert_tree.insert("", "end", values=alert_details, tags=('alert',))
-                    alert_tree.see(alert_tree.get_children()[-1])
-                    logging.info(alert_message)
-                    self.send_alert(alert_message)
+            sniff(iface=interface, prn=lambda packet: self.process_packet(packet, tree, alert_tree), stop_filter=lambda _: not self.is_sniffing)
         except Exception as e:
             print("An error occurred during packet sniffing:", e)
 
+    def process_packet(self, packet, tree, alert_tree):
+        packet_details, alert_message = self.get_packet_details(packet)
+        if packet_details:
+            tree.insert("", "end", values=packet_details)
+            tree.see(tree.get_children()[-1])
+
+        if alert_message:
+            self.alert_messages.append(alert_message)
+            alert_details = alert_message.split(' - ')
+            alert_tree.insert("", "end", values=alert_details, tags=('alert',))
+            alert_tree.see(alert_tree.get_children()[-1])
+            logging.info(alert_message)
+            self.send_alert(alert_message)
+
     def get_packet_details(self, packet):
         try:
-            # Get protocol information
-            protocol = packet.highest_layer if hasattr(packet, 'highest_layer') else "Unknown"
+            protocol = packet.getlayer(2).name if packet.haslayer(IP) else "Unknown"
 
-            # Get IP addresses (handle both IPv4 and IPv6)
-            if hasattr(packet, 'ip'):
-                source_address = packet.ip.src
-                destination_address = packet.ip.dst
-            elif hasattr(packet, 'ipv6'):
-                source_address = packet.ipv6.src
-                destination_address = packet.ipv6.dst
-            else:
-                source_address = "Unknown"
-                destination_address = "Unknown"
+            source_address = packet[IP].src if packet.haslayer(IP) else "Unknown"
+            destination_address = packet[IP].dst if packet.haslayer(IP) else "Unknown"
 
-            # Get transport layer ports
-            if hasattr(packet, 'tcp'):
-                source_port = packet.tcp.srcport
-                destination_port = packet.tcp.dstport
-            elif hasattr(packet, 'udp'):
-                source_port = packet.udp.srcport
-                destination_port = packet.udp.dstport
+            if packet.haslayer(TCP):
+                source_port = packet[TCP].sport
+                destination_port = packet[TCP].dport
+            elif packet.haslayer(UDP):
+                source_port = packet[UDP].sport
+                destination_port = packet[UDP].dport
             else:
                 source_port = "Unknown"
                 destination_port = "Unknown"
 
-            # Get packet timestamp
-            packet_time = packet.sniff_time
+            packet_time = datetime.fromtimestamp(packet.time).strftime('%Y-%m-%d %H:%M:%S')
 
             packet_details = (
                 str(packet_time),
@@ -165,7 +150,6 @@ def get_interfaces():
     for interface in interfaces:
         addrs = netifaces.ifaddresses(interface)
         if netifaces.AF_INET in addrs:
-            # Filter interfaces that are likely to be Wi-Fi or Ethernet
             if 'wifi' in interface.lower() or 'eth' in interface.lower() or 'en' in interface.lower():
                 filtered_interfaces.append(interface)
     return filtered_interfaces

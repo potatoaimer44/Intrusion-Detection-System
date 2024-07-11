@@ -1,6 +1,6 @@
 # DNS Traffic
-alert udp any any -> any 53 (msg:"DNS Query Detected")
-alert udp any 53 -> any any (msg:"DNS Response Detected")
+#alert udp any any -> any 53 (msg:"DNS Query Detected")
+#alert udp any 53 -> any any (msg:"DNS Response Detected")
 
 # HTTP Traffic
 alert tcp any any -> any 8000 (msg:"HTTP Traffic on Alternate Port 8000")
@@ -42,8 +42,8 @@ alert tcp any 3389 -> any any (msg:"RDP Response Detected")
 alert tcp any any -> any 1025:65535 (msg:"Suspicious TCP Traffic Detected")
 
 # Malicious IP Detection
-alert ip [malicious_ip1,malicious_ip2] any -> any any (msg:"Traffic from Known Malicious IP Detected")
-alert ip any any -> [malicious_ip1,malicious_ip2] any (msg:"Traffic to Known Malicious IP Detected")
+alert 192.168.40.39 any -> any any (msg:"Traffic from Known Malicious IP Detected")
+alert ip any any -> [192.168.40.39,192.168.40.39] any (msg:"Traffic to Known Malicious IP Detected")
 
 # Suspicious ICMP Traffic
 alert icmp any any -> any any (itype:8; msg:"ICMP Echo Request Detected")
