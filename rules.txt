@@ -43,7 +43,7 @@ alert tcp any any -> any 1025:65535 (msg:"Suspicious TCP Traffic Detected")
 
 # Malicious IP Detection
 alert 192.168.40.39 any -> any any (msg:"Traffic from Known Malicious IP Detected")
-alert ip any any -> [192.168.40.39,192.168.40.39] any (msg:"Traffic to Known Malicious IP Detected")
+alert 192.168.40.21 any any -> 192.168.40.39 any (msg:"Traffic to Known Malicious IP Detected")
 
 # Suspicious ICMP Traffic
 alert icmp any any -> any any (itype:8; msg:"ICMP Echo Request Detected")
