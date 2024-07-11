@@ -4,8 +4,8 @@ alert udp any 53 -> any any (msg:"DNS Response Detected")
 
 # HTTP Traffic
 alert tcp any any -> any 8000 (msg:"HTTP Traffic on Alternate Port 8000")
-#alert tcp any 80 -> any any (msg:"HTTP Response Traffic on Port 80")
-#alert tcp any any -> any 80 (msg:"HTTP Request Traffic on Port 80")
+alert tcp any 80 -> any any (msg:"HTTP Response Traffic on Port 80")
+alert tcp any any -> any 80 (msg:"HTTP Request Traffic on Port 80")
 
 # Port Scanning
 alert tcp any any -> any 1:1024 (msg:"Port Scan Detected")
