@@ -8,7 +8,12 @@ alert tcp any 80 -> any any (msg:"HTTP Response Traffic on Port 80")
 alert tcp any any -> any 80 (msg:"HTTP Request Traffic on Port 80")
 
 # Port Scanning
-alert tcp any any -> any 1:1024 (msg:"Port Scan Detected")
+alert any any any -> any 1025 (msg:"Port Scan Detected")
+alert any any any -> any 1026 (msg:"Port Scan Detected")
+alert any any any -> any 1027 (msg:"Port Scan Detected")
+alert any any any -> any 1028 (msg:"Port Scan Detected")
+alert any any any -> any 1029:4444 (msg:"Port Scan Detected")
+
 
 # SSH Traffic
 alert tcp any any -> any 22 (msg:"SSH Traffic Detected")
@@ -38,12 +43,9 @@ alert tcp any 445 -> any any (msg:"SMB Response Detected")
 alert tcp any any -> any 3389 (msg:"RDP Traffic Detected")
 alert tcp any 3389 -> any any (msg:"RDP Response Detected")
 
-# Suspicious TCP Traffic
-alert tcp any any -> any 1025:65535 (msg:"Suspicious TCP Traffic Detected")
-
 # Malicious IP Detection
-alert 192.168.40.39 any -> any any (msg:"Traffic from Known Malicious IP Detected")
-alert 192.168.40.21 any any -> 192.168.40.39 any (msg:"Traffic to Known Malicious IP Detected")
+#alert any 192.168.40.39 any -> any any (msg:"Traffic from Known Malicious IP Detected")
+#alert any 192.168.40.21 any any -> 192.168.40.39 any (msg:"Traffic to Known Malicious IP Detected")
 
 # Suspicious ICMP Traffic
 alert icmp any any -> any any (itype:8; msg:"ICMP Echo Request Detected")
